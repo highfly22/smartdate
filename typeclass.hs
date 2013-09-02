@@ -1,24 +1,7 @@
 {-# LANGUAGE ExistentialQuantification, DeriveDataTypeable #-}
 import Data.Typeable;
+import Data.Dynamic;
 import Data.Maybe;
-
-class Typeable a => XTerm a where
-  xapply :: (XTerm b, Typeable b, XTerm r, Typeable r) => r -> a -> b -> Maybe r
-
-data FunBox = forall a b. (XTerm a, XTerm b) => FB (a -> b)
-            deriving Typeable
-
-i2c :: Int -> Char
-i2c = (toEnum :: Int -> Char)
-
-instance XTerm FunBox where
-  xapply r (FB a) b = Nothing
-
-instance XTerm Int where
-  xapply r a b = Nothing
-
-instance XTerm Char where
-  xapply r a b = Nothing
 
 class XEnum a where
   xsucc :: a -> a
@@ -35,7 +18,7 @@ instance XEnum Char where
   xpred = pred
   xenumFrom = enumFrom
 
-data EnumBox = forall s. (XTerm s, XEnum s, Show s) => EB s
+data EnumBox = forall s. (XEnum s, Show s) => EB s
                deriving Typeable
 
 instance Show EnumBox where
@@ -46,6 +29,4 @@ instance XEnum EnumBox where
   xpred (EB a) = EB . xpred $ a
   xenumFrom (EB a) = foldr (\a b -> EB a : b) [] (xenumFrom a)
 
-instance XTerm EnumBox where
-  xapply r a b = Nothing 
-
+-- fromDyn (dynApp (toDyn (xsucc :: EnumBox -> EnumBox) ) (toDyn (EB 'a'))) (EB (1 ::Int))
