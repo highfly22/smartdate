@@ -1,7 +1,13 @@
 {-# LANGUAGE ExistentialQuantification, DeriveDataTypeable #-}
-import Data.Typeable;
-import Data.Dynamic;
-import Data.Maybe;
+module AUG
+       ( Dict
+       , deduce
+       , EnumBox
+       , XEnum(..)
+       ) where
+
+import Data.Dynamic
+import Data.Maybe
 
 class XEnum a where
   xsucc :: a -> a
@@ -29,4 +35,12 @@ instance XEnum EnumBox where
   xpred (EB a) = EB . xpred $ a
   xenumFrom (EB a) = foldr (\a b -> EB a : b) [] (xenumFrom a)
 
+type Dict = [Dynamic]
+
+deduce :: Dict -> Dict -> Dict
+deduce a b = [z|x <- a, y <- b, let (Just z) = dynApply x y] ++
+             [z|x <- a, y <- b, let (Just z) = dynApply y x]
+
+
 -- fromDyn (dynApp (toDyn (xsucc :: EnumBox -> EnumBox) ) (toDyn (EB 'a'))) (EB (1 ::Int))
+-- (dynApply (toDyn (xsucc :: EnumBox -> EnumBox) ) (toDyn 'a'))
