@@ -2,7 +2,9 @@ module DateDict
        where
 
 import AUG
-import Data.Dynamic
 
-last :: Dict
-last = [ toDyn (xsucc :: EnumBox -> EnumBox) ]
+next :: [Gloss]
+next = [ toGloss (\c -> (xsucc :: EnumBox -> EnumBox)) ]
+
+-- monday :: [Gloss]
+-- monday = [ toGloss (\c -> ())]

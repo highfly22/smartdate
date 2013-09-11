@@ -1,13 +1,19 @@
+{-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE ExistentialQuantification, DeriveDataTypeable #-}
 module AUG
        ( Dict
        , deduce
        , EnumBox
        , XEnum(..)
+       , Gloss(..)
+       , toGloss
        ) where
 
 import Data.Dynamic
+import Data.Typeable.Internal
+import Unsafe.Coerce
 import Data.Maybe
+import GHC.Base
 
 class XEnum a where
   xsucc :: a -> a
@@ -35,12 +41,30 @@ instance XEnum EnumBox where
   xpred (EB a) = EB . xpred $ a
   xenumFrom (EB a) = foldr (\a b -> EB a : b) [] (xenumFrom a)
 
-type Dict = [Dynamic]
+type Context = [Dynamic]
 
-deduce :: Dict -> Dict -> Dict
-deduce a b = [z|x <- a, y <- b, let (Just z) = dynApply x y] ++
-             [z|x <- a, y <- b, let (Just z) = dynApply y x]
+data Gloss =  Gloss TypeRep (Context -> Any)
 
+instance Show Gloss where
+  show (Gloss t f) = "(Gloss " ++ show t ++ ")"
+
+toGloss :: Typeable a => (Context -> a) -> Gloss
+toGloss v = Gloss (typeOf v) (unsafeCoerce v)
+
+t :: Context -> Int
+t c = 1
+
+always1 :: Int -> Int
+always1 a = 2
+
+f :: Context -> Int -> Int
+f c = always1
+
+deduceGloss :: Gloss -> Gloss -> Maybe Gloss
+deduceGloss (Gloss funcT func) (Gloss argT arg) =  case funResultTy (realtype funcT) (realtype argT) of
+  Just t -> Just $ Gloss t (\c ->  ((unsafeCoerce func) c) ((unsafeCoerce arg) c))
+  Nothing -> Nothing
+  where realtype = ((!! 1) . snd . splitTyConApp)
 
 -- fromDyn (dynApp (toDyn (xsucc :: EnumBox -> EnumBox) ) (toDyn (EB 'a'))) (EB (1 ::Int))
 -- (dynApply (toDyn (xsucc :: EnumBox -> EnumBox) ) (toDyn 'a'))
